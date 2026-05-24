@@ -1,0 +1,28 @@
+const basePriceBW = 2; // per page (Black & White) ₹
+const basePriceColor = 5; // per page (Color) ₹
+function calculateCost() {
+ const copies = parseInt(copiesEl.value) || 1;
+ const pricePerPage = (colorEl.value === 'color') ? basePriceColor : 
+basePriceBW;
+ totalCost = copies * 1 * pricePerPage;
+ costBox.textContent = `Total: ${totalCost}`; ₹
+}
+copiesEl.addEventListener('input', calculateCost);
+colorEl.addEventListener ('change', calculateCost);
+calculateCost(); // initialise on page load
+payBtn.addEventListener('click', () => {
+ const file = document.getElementById('file').files[0];
+ if (!file) { alert('Please upload a file!'); return; }
+ alert(`Payment of ${totalCost} successful (simulated)!`); ₹
+ const formData = new FormData();
+ formData.append('file', file);
+ formData.append('copies', copiesEl.value);
+ formData.append('duplex', document.getElementById('duplex').value);
+ formData.append('color', colorEl.value);
+ formData.append('pages', document.getElementById('pages').value);
+ formData.append('cost', totalCost);
+ fetch('http://localhost:3000/print', { method:'POST', body: formData })
+ .then(res => res.json())
+ .then(data => { alert('Print job saved in DB!'); console.log(data); })
+ .catch(err => { console.error(err); alert('Error sending print job');
+});
