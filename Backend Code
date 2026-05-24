@@ -1,0 +1,35 @@
+app.post('/print', upload.single('file'), async (req, res) => {
+ try {
+ const { copies, duplex, color, pages, cost } = req.body;
+ const file = req.file;
+ if (!file) return res.status(400).json({ error: 'File upload required' });
+ const filePath = path.join(__dirname, 'uploads', file.filename);
+ const filename = file.originalname;
+ // Step 1: Insert job record into MySQL
+ const [result] = await pool.query(
+ `INSERT INTO print_jobs
+ (filename, copies, duplex, color, pages, cost, status, payment_id)
+ VALUES (?, ?, ?, ?, ?, ?, 'paid', ?)`,
+ [filename, copies, duplex, color, pages||null, cost, 
+'SIMULATED_PAYMENT_ID']
+ );
+ // Step 2: Construct CUPS lp command
+ let cmd = `lp -d iR-ADV-4545-4551-UFR-II -n ${copies} `;
+ if (duplex === 'double') cmd += '-o sides=two-sided-long-edge ';
+ if (color === 'bw') cmd += '-o ColorModel=Gray ';
+ if (pages && pages.trim() !== '') cmd += `-P ${pages} `;
+ cmd += `"${filePath}"`;
+ // Step 3: Execute print command
+ exec(cmd, (err, stdout, stderr) => {
+ if (err) return res.status(500).json({ error: 'Print command failed' });
+ res.json({
+ message: 'Print job stored & sent to printer!',
+ jobId: result.insertId,
+ printerOutput: stdout
+ });
+ });
+ } catch (err) {
+ console.error(err);
+ res.status(500).json({ error: 'Server error' });
+ }
+});
